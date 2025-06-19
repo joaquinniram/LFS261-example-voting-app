@@ -1,15 +1,19 @@
 pipeline {
-  agent any
-  tools{
-    maven 'maven 3.9.8'
-  }
+  agent none
+
   stages{
      stage("build"){
-        when{
+         when{
             changeset "**/worker/**"
-        }
+         }
+         agent{
+            docker{
+               image 'maven:3.9.8-sapmachine-21'
+               args '-v $HOME/.m2:/root/.m2'
+            }
+         }
          steps{
-             echo 'Compiling worker app'
+             echo 'building worker app'
              dir('worker'){
                sh 'mvn compile'
              }
@@ -17,8 +21,14 @@ pipeline {
      }
      stage("test"){
          when{
-	     changeset "**/worker/**"
-	 }
+            changeset "**/worker/**"
+         }
+         agent{
+            docker{
+               image 'maven:3.9.8-sapmachine-21'
+               args '-v $HOME/.m2:/root/.m2'
+            }
+         }
          steps{
              echo 'Running Unit Tests on worker app'
              dir('worker'){
@@ -27,9 +37,15 @@ pipeline {
          }
      }
      stage("package"){
-	 when{
-	     branch 'master'
-             changeset "**/worker/**"
+         when{
+            branch "master"
+            changeset "**/worker/**"
+         }
+         agent{
+            docker{
+               image 'maven:3.9.8-sapmachine-21'
+               args '-v $HOME/.m2:/root/.m2'
+            }
          }
          steps{
              echo 'Packaging worker app'
@@ -39,10 +55,30 @@ pipeline {
              }
          }
      }
+
+     stage('docker-package'){
+       agent any
+       when{
+            branch "master"
+            changeset "**/worker/**"
+       }
+       steps{
+         echo 'Packaging worker app with docker'
+         script{
+           docker.withRegistry('https://index.docker.io/v1/','dockerlogin') { 
+             def workerImage = docker.build("joaquinniram/worker:v${env.BUILDID}", "./worker")
+             workerImage.push()
+             workerImage.push("${env.BRANCH_NAME}")
+             workerImage.push("latest")
+           }
+         }
+      }
+    }
   }
+  
   post{
      always{
-         echo 'Building multibranch pipeline for worker iscompleted..'
+         echo 'Building multibranch pipeline for worker is completed..'
      }
   }
 }
