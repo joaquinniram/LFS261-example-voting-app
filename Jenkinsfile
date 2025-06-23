@@ -168,17 +168,17 @@ pipeline {
     }
 
     stage('vote integration'){ 
-    agent any 
-    when{ 
-      changeset "**/vote/**" 
-      branch 'master' 
-    } 
-    steps{ 
-      echo 'Running Integration Tests on vote app' 
-      dir('vote'){ 
-        sh 'sh integration_test.sh' 
-      } 
-    } 
+    	agent any 
+    	when{ 
+      		changeset '**/vote/**' 
+      		branch 'master' 
+    	} 
+    	steps{ 
+      		echo 'Running Integration Tests on vote app' 
+      		dir('vote'){ 
+        		sh 'sh integration_test.sh' 
+      		} 
+    	} 
     } 
 
 
@@ -198,7 +198,6 @@ pipeline {
 
       }
     }
-
 
     stage('deploy to dev') {
       agent any
